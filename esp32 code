@@ -1,0 +1,89 @@
+#define BLYNK_TEMPLATE_ID "TMPL3TFvmO580"
+#define BLYNK_TEMPLATE_NAME "project"
+#define BLYNK_AUTH_TOKEN "v4S3cwkJt260YAQAD8UuOBGbEHZB7kQN"
+
+#include <WiFi.h>
+#include <BlynkSimpleEsp32.h>
+#include <ESP32Servo.h>
+
+
+char auth[] = BLYNK_AUTH_TOKEN;
+char ssid[] = "TEST";    
+char pass[] = "mfjy6228";
+
+
+#define TRIG_PIN 17   
+#define ECHO_PIN 16  
+#define SERVO_PIN1 15 
+#define SERVO_PIN2 14 
+
+Servo servo1, servo2;
+long duration;
+int distance;
+BlynkTimer timer;
+
+
+void measureDistance() {
+    digitalWrite(TRIG_PIN, LOW);
+    delayMicroseconds(2);
+    digitalWrite(TRIG_PIN, HIGH);
+    delayMicroseconds(10);
+    digitalWrite(TRIG_PIN, LOW);
+
+    duration = pulseIn(ECHO_PIN, HIGH);
+    distance = duration * 0.0344 / 2;
+
+    Serial.print("Distance: ");
+    Serial.print(distance);
+    Serial.println(" cm");
+
+    Blynk.virtualWrite(V0, distance);
+}
+
+
+BLYNK_WRITE(V1) {
+    int servo1_angle = param.asInt();
+    servo1.write(servo1_angle);
+}
+
+BLYNK_WRITE(V2) {
+    int servo2_angle = param.asInt();
+    servo2.write(servo2_angle);
+}
+
+
+void connectWiFi() {
+    WiFi.begin(ssid, pass);
+    Serial.print("Connecting to WiFi");
+    int attempts = 0;
+    while (WiFi.status() != WL_CONNECTED && attempts < 20) {
+        delay(500);
+        Serial.print(".");
+        attempts++;
+    }
+    if (WiFi.status() == WL_CONNECTED) {
+        Serial.println("\nWiFi Connected!");
+    } else {
+        Serial.println("\nWiFi Connection Failed!");
+    }
+}
+
+
+void setup() {
+    Serial.begin(115200);
+    Serial.println();
+
+    connectWiFi();
+    Blynk.begin(auth, ssid, pass);
+
+    pinMode(TRIG_PIN, OUTPUT);
+    pinMode(ECHO_PIN, INPUT);
+    servo1.attach(SERVO_PIN1);
+    servo2.attach(SERVO_PIN2);
+    timer.setInterval(1000L, measureDistance);
+}
+
+void loop() {
+    Blynk.run();
+    timer.run();
+}
